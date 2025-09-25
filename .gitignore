@@ -1,0 +1,59 @@
+# Build directories
+build/
+.pio/
+.pioenvs/
+.piolibdeps/
+
+# Arduino IDE
+*.hex
+*.elf
+*.map
+
+# PlatformIO
+.vscode/
+.clang_complete
+.gcc-flags.json
+
+# Temporary files
+*.tmp
+*.bak
+*~
+.DS_Store
+Thumbs.db
+
+# Log files
+*.log
+
+# Documentation build
+docs/html/
+docs/latex/
+
+# IDE files
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store?
+ehthumbs.db
+Icon?
+
+# Compiled Object files
+*.o
+*.obj
+
+# Libraries
+lib/
+
+# Test results
+test_results/
+test_output/
+
+# Simulation files
+*.sim
+*.wlf
+*.fdb_latexmk
+*.fls
+
+# Backup files
+*.orig

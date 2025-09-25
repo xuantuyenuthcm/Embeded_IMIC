@@ -1,0 +1,84 @@
+EMBEDDED IMIC PROJECT - CIRCUIT DIAGRAM
+======================================
+
+Arduino Uno Pin Connections:
+----------------------------
+
+POWER:
+- VCC (5V) → Breadboard positive rail
+- GND → Breadboard negative rail
+
+DHT22 TEMPERATURE/HUMIDITY SENSOR:
+- Pin 1 (VCC) → 5V
+- Pin 2 (DATA) → Digital Pin 2
+- Pin 3 (NC) → Not connected
+- Pin 4 (GND) → GND
+- 10kΩ pull-up resistor between DATA and VCC
+
+LCD 16x2 I2C DISPLAY:
+- VCC → 5V
+- GND → GND
+- SDA → Analog Pin A4 (SDA)
+- SCL → Analog Pin A5 (SCL)
+
+LIGHT DEPENDENT RESISTOR (LDR):
+- One terminal → 5V
+- Other terminal → Analog Pin A0 AND 10kΩ pull-down resistor to GND
+
+LED INDICATORS:
+- Status LED (Green):
+  * Anode → Digital Pin 8
+  * Cathode → 220Ω resistor → GND
+- Warning LED (Yellow):
+  * Anode → Digital Pin 9
+  * Cathode → 220Ω resistor → GND
+- Error LED (Red):
+  * Anode → Digital Pin 10
+  * Cathode → 220Ω resistor → GND
+
+PUSH BUTTONS:
+- Menu Button:
+  * One terminal → Digital Pin 3
+  * Other terminal → GND
+  * Internal pull-up resistor enabled in code
+- Select Button:
+  * One terminal → Digital Pin 4
+  * Other terminal → GND
+  * Internal pull-up resistor enabled in code
+
+BREADBOARD LAYOUT:
+-----------------
+Row 1: Power rails (5V and GND)
+Row 2-5: DHT22 sensor and pull-up resistor
+Row 6-8: LDR and pull-down resistor
+Row 9-12: LED indicators with current limiting resistors
+Row 13-15: Push buttons
+Row 16-20: LCD I2C module (if not directly connected)
+
+COMPONENT LIST:
+--------------
+- 1x Arduino Uno
+- 1x DHT22 Temperature/Humidity sensor
+- 1x 16x2 LCD with I2C backpack
+- 1x LDR (Light Dependent Resistor)
+- 2x Push buttons (tactile switches)
+- 3x LEDs (Red, Yellow, Green)
+- 3x 220Ω resistors (for LEDs)
+- 1x 10kΩ resistor (DHT22 pull-up)
+- 1x 10kΩ resistor (LDR pull-down)
+- 1x Breadboard
+- Jumper wires (male-to-male, male-to-female)
+- USB cable for programming and power
+
+POWER REQUIREMENTS:
+------------------
+- Total current consumption: ~150mA
+- Can be powered via USB or external 7-12V adapter
+- All components operate at 5V logic level
+
+NOTES:
+------
+- Ensure proper connections before powering on
+- Double-check polarity for LEDs and sensors
+- Use multimeter to verify connections if needed
+- Keep wires organized to avoid interference

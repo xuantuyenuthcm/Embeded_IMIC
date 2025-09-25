@@ -1,0 +1,25 @@
+# Required Libraries for Embedded IMIC Project
+# Install these libraries through Arduino IDE Library Manager or PlatformIO
+
+# Core Libraries (usually pre-installed)
+Wire                        # I2C communication library
+EEPROM                      # EEPROM storage library
+
+# External Libraries (need to be installed)
+DHT sensor library          # Version 1.4.4 or higher - by Adafruit
+LiquidCrystal_I2C          # Version 1.1.4 or higher - by Marco Schwartz
+Adafruit Unified Sensor    # Version 1.1.9 or higher - by Adafruit
+
+# Installation Instructions:
+# Arduino IDE:
+# 1. Go to Tools > Manage Libraries
+# 2. Search for each library name
+# 3. Install the recommended version
+
+# PlatformIO:
+# 1. Run: pio lib install "adafruit/DHT sensor library@^1.4.4"
+# 2. Run: pio lib install "marcoschwartz/LiquidCrystal_I2C@^1.1.4"
+# 3. Run: pio lib install "adafruit/Adafruit Unified Sensor@^1.1.9"
+
+# Or simply use the platformio.ini file in this project which will
+# automatically install the required libraries.

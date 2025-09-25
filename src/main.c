@@ -5,7 +5,33 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART2_UART_Init(void);
 
+// Pseudo-RTOS Task Functions
+void GreenLED_Task(void);
+void OrangeLED_Task(void);
+void RedLED_Task(void);
+void UART_Task(void);
+void Button_Task(void);
+
+// Hardware handles
 UART_HandleTypeDef huart2;
+
+// Pseudo-RTOS Task Control Blocks
+typedef struct {
+    uint32_t period;        // Task period in ms
+    uint32_t last_run;      // Last execution time
+    void (*task_func)(void); // Task function pointer
+    uint8_t enabled;        // Task enable flag
+} TaskControlBlock_t;
+
+// Message Queue (simple array)
+#define QUEUE_SIZE 10
+char message_queue[QUEUE_SIZE][50];
+uint8_t queue_head = 0;
+uint8_t queue_tail = 0;
+uint8_t queue_count = 0;
+
+// UART Mutex (simple flag)
+uint8_t uart_busy = 0;
 
 // Simple string length function
 int string_length(const char* str) {
@@ -14,6 +40,31 @@ int string_length(const char* str) {
         len++;
     }
     return len;
+}
+
+// Queue functions
+uint8_t queue_send(const char* msg) {
+    if(queue_count < QUEUE_SIZE) {
+        for(int i = 0; i < 50 && msg[i] != '\0'; i++) {
+            message_queue[queue_head][i] = msg[i];
+        }
+        queue_head = (queue_head + 1) % QUEUE_SIZE;
+        queue_count++;
+        return 1;
+    }
+    return 0;
+}
+
+uint8_t queue_receive(char* msg) {
+    if(queue_count > 0) {
+        for(int i = 0; i < 50; i++) {
+            msg[i] = message_queue[queue_tail][i];
+        }
+        queue_tail = (queue_tail + 1) % QUEUE_SIZE;
+        queue_count--;
+        return 1;
+    }
+    return 0;
 }
 
 int main(void)
@@ -28,44 +79,37 @@ int main(void)
     MX_GPIO_Init();
     MX_USART2_UART_Init();
 
-    // Send Hello message
-    char hello_msg[] = "STM32F411 Started!\r\n";
-    HAL_UART_Transmit(&huart2, (uint8_t*)hello_msg, string_length(hello_msg), 1000);
+    // Initialize Pseudo-RTOS Task Control Blocks
+    TaskControlBlock_t tasks[] = {
+        {1000, 0, GreenLED_Task, 1},   // Green LED - 1000ms period
+        {1500, 0, OrangeLED_Task, 1},  // Orange LED - 1500ms period  
+        {2000, 0, RedLED_Task, 1},     // Red LED - 2000ms period
+        {100, 0, UART_Task, 1},        // UART Task - 100ms period
+        {50, 0, Button_Task, 1}        // Button Task - 50ms period
+    };
     
-    // Test simple message
-    for(int i = 0; i < 5; i++) {
-        char test_msg[] = "Test message\r\n";
-        HAL_UART_Transmit(&huart2, (uint8_t*)test_msg, string_length(test_msg), 1000);
-        HAL_Delay(500);
-    }
+    uint8_t num_tasks = sizeof(tasks) / sizeof(TaskControlBlock_t);
 
-    // Main loop - STM32F411E-DISCO LED Demo
+    // Send startup message to queue
+    queue_send("Pseudo-RTOS Started on STM32F411E-DISCO!\r\n");
+
+    // Main Scheduler Loop
     while (1)
     {
-        // Turn ON LD3 (Orange LED) - PD13
-        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13, GPIO_PIN_SET);
-        char msg1[] = "LD3 Orange LED ON (PD13)\r\n";
-        HAL_UART_Transmit(&huart2, (uint8_t*)msg1, string_length(msg1), 1000);
-        HAL_Delay(1000);
+        uint32_t current_time = HAL_GetTick();
         
-        // Turn OFF LD3 (Orange LED) - PD13
-        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13, GPIO_PIN_RESET);
-        char msg2[] = "LD3 Orange LED OFF (PD13)\r\n";
-        HAL_UART_Transmit(&huart2, (uint8_t*)msg2, string_length(msg2), 1000);
-        HAL_Delay(1000);
+        // Execute tasks based on their periods
+        for(uint8_t i = 0; i < num_tasks; i++)
+        {
+            if(tasks[i].enabled && 
+               (current_time - tasks[i].last_run >= tasks[i].period))
+            {
+                tasks[i].task_func();  // Execute task
+                tasks[i].last_run = current_time;
+            }
+        }
         
-        // Bonus: Cycle through all LEDs
-        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_SET); // LD4 Green
-        HAL_Delay(200);
-        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_RESET);
-        
-        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, GPIO_PIN_SET); // LD5 Red  
-        HAL_Delay(200);
-        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, GPIO_PIN_RESET);
-        
-        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_15, GPIO_PIN_SET); // LD6 Blue
-        HAL_Delay(200);
-        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_15, GPIO_PIN_RESET);
+        HAL_Delay(1);  // Small delay for system stability
     }
 }
 
@@ -161,6 +205,12 @@ static void MX_GPIO_Init(void)
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+    
+    /*Configure GPIO pin : PA0 - User Button */
+    GPIO_InitStruct.Pin = GPIO_PIN_0;
+    GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
     /*Configure GPIO pins : PA2 PA3 */
     GPIO_InitStruct.Pin = GPIO_PIN_2|GPIO_PIN_3;
@@ -169,6 +219,85 @@ static void MX_GPIO_Init(void)
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
     GPIO_InitStruct.Alternate = GPIO_AF7_USART2;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+}
+
+
+
+/**
+  * @brief Green LED Task - Toggles LD4 (PD12)
+  */
+void GreenLED_Task(void)
+{
+    static uint8_t led_state = 0;
+    
+    led_state = !led_state;
+    HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, led_state ? GPIO_PIN_SET : GPIO_PIN_RESET);
+    
+    if(led_state) {
+        queue_send("Green LED ON\r\n");
+    }
+}
+
+/**
+  * @brief Orange LED Task - Toggles LD3 (PD13)
+  */
+void OrangeLED_Task(void)
+{
+    static uint8_t led_state = 0;
+    
+    led_state = !led_state;
+    HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13, led_state ? GPIO_PIN_SET : GPIO_PIN_RESET);
+    
+    if(led_state) {
+        queue_send("Orange LED ON\r\n");
+    }
+}
+
+/**
+  * @brief Red LED Task - Toggles LD5 (PD14)
+  */
+void RedLED_Task(void)
+{
+    static uint8_t led_state = 0;
+    
+    led_state = !led_state;
+    HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, led_state ? GPIO_PIN_SET : GPIO_PIN_RESET);
+    
+    if(led_state) {
+        queue_send("Red LED ON\r\n");
+    }
+}
+
+/**
+  * @brief UART Task - Handles message transmission
+  */
+void UART_Task(void)
+{
+    char msg[50];
+    
+    if(!uart_busy && queue_receive(msg))
+    {
+        uart_busy = 1;  // Take mutex
+        HAL_UART_Transmit(&huart2, (uint8_t*)msg, string_length(msg), 100);
+        uart_busy = 0;  // Release mutex
+    }
+}
+
+/**
+  * @brief Button Task - Monitors user button
+  */
+void Button_Task(void)
+{
+    static uint8_t last_button_state = 0;
+    uint8_t button_state = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_0);
+    
+    if(button_state && !last_button_state) // Rising edge
+    {
+        HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_15); // Toggle Blue LED
+        queue_send("Button Pressed - Blue LED Toggled\r\n");
+    }
+    
+    last_button_state = button_state;
 }
 
 /**
@@ -185,6 +314,10 @@ void Error_Handler(void)
     }
     /* USER CODE END Error_Handler_Debug */
 }
+
+
+
+
 
 #ifdef  USE_FULL_ASSERT
 /**

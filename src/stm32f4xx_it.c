@@ -5,6 +5,8 @@ extern UART_HandleTypeDef huart2;
 void SysTick_Handler(void)
 {
   HAL_IncTick();
+  
+  /* FreeRTOS will handle SysTick via xPortSysTickHandler - don't call it here */
 }
 
 void NMI_Handler(void)
